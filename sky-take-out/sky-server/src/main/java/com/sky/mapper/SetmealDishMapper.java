@@ -19,4 +19,10 @@ public interface SetmealDishMapper {
      * @param setmealDish
      */
     void save(SetmealDish setmealDish);
+
+    /**
+     * 根据套餐id删除套餐菜品关联数据
+     * @param setmealIds
+     */
+    void deleteBySetmealId(List<Long> setmealIds);
 }
