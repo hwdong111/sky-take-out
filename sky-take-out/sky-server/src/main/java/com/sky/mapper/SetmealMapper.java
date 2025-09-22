@@ -50,7 +50,7 @@ public interface SetmealMapper {
     Setmeal getById(Long id);
 
     /**
-     * 修改套餐
+     * 动态修改套餐
      * @param setmeal
      */
     @AutoFill(value = OperationType.UPDATE)
