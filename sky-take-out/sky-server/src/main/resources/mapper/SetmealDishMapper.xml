@@ -9,4 +9,11 @@
             #{dishId}
         </foreach>
     </select>
+
+    <insert id="save">
+        insert into setmeal_dish
+            (setmeal_id, dish_id, name, price, copies)
+        values
+            (#{setmealId}, #{dishId}, #{name}, #{price}, #{copies})
+    </insert>
 </mapper>

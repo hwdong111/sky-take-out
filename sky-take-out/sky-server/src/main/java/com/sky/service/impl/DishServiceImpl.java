@@ -32,6 +32,7 @@ public class DishServiceImpl implements DishService {
 
     @Autowired
     private DishFlavorMapper dishFlavorMapper;
+
     @Autowired
     private SetmealDishMapper setmealDishMapper;
 
@@ -144,5 +145,15 @@ public class DishServiceImpl implements DishService {
             //向口味表插入n条数据
             dishFlavorMapper.insertBatch(flavors);
         }
+    }
+
+    /**
+     * 根据分类id查询菜品列表
+     * @param categoryId
+     * @return
+     */
+    public List<Dish> list(Long categoryId) {
+        List<Dish> dishes = dishMapper.list(categoryId);
+        return dishes;
     }
 }
