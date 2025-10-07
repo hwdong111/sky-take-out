@@ -19,6 +19,10 @@
             <where>
                 <if test="userId != null">user_id = #{userId}</if>
                 <if test="status != null">and status = #{status}</if>
+                <if test="phone != null">and phone = #{phone}</if>
+                <if test="number != null">and number = #{number}</if>
+                <if test="beginTime != null">and order_time &gt;= #{beginTime}</if>
+                <if test="endTime != null">and order_time &lt;= #{endTime}</if>
             </where>
     </select>
 
@@ -43,6 +47,8 @@
             <if test="packAmount != null">pack_amount = #{packAmount},</if>
             <if test="tablewareNumber != null">tableware_number = #{tablewareNumber},</if>
             <if test="tablewareStatus != null">tableware_status = #{tablewareStatus},</if>
+            <if test="cancelReason != null">cancel_reason = #{cancelReason},</if>
+            <if test="rejectionReason != null">rejection_reason = #{rejectionReason},</if>
         </set>
         where id = #{id}
     </update>
