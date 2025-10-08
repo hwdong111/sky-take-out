@@ -2,8 +2,10 @@ package com.sky.service.impl;
 
 import com.sky.entity.Orders;
 import com.sky.mapper.OrderMapper;
+import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
 import com.sky.vo.TurnoverReportVO;
+import com.sky.vo.UserReportVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,9 @@ public class ReportServiceImpl implements ReportService {
 
     @Autowired
     private OrderMapper orderMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     /**
      * 统计指定区间内营业额数据
@@ -69,6 +74,60 @@ public class ReportServiceImpl implements ReportService {
         return TurnoverReportVO.builder()
                 .dateList(dateListStr)
                 .turnoverList(turnoverListStr)
+                .build();
+    }
+
+    /**
+     * 统计指定区间内用户数据
+     * @param begin
+     * @param end
+     * @return
+     */
+    public UserReportVO getUserReportStatistics(LocalDate begin, LocalDate end) {
+        //存放从begin到end的每一天的日期
+        List<LocalDate> dateList = new ArrayList<>();
+
+        Map map = new HashMap();
+        map.put("end", LocalDateTime.of(begin, LocalTime.MIN));
+        Integer totalUser = userMapper.countByMap(map);
+
+        while(!begin.equals(end)) {
+            //添加日期
+            dateList.add(begin);
+            //日期加1天
+            begin = begin.plusDays(1);
+        }
+        //添加最后一天
+        dateList.add(end);
+        //将日期列表转换为字符串，用逗号分隔
+        String dateListStr = StringUtils.join(dateList, ",");
+
+        //存放每天的新增用户数量
+        List<Integer> newUserList = new ArrayList<>();
+        //存放每天的用户总数
+        List<Integer> totalUserList = new ArrayList<>();
+
+        for (LocalDate date : dateList) {
+            //查询date对应的新增用户数量
+            map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
+            map.put("end", LocalDateTime.of(date, LocalTime.MAX));
+
+            Integer newUser = userMapper.countByMap(map);
+
+            //存放新增用户数和总数
+            newUserList.add(newUser);
+            totalUser += newUser;
+            totalUserList.add(totalUser);
+        }
+
+        //将新增用户数和总数列表转换为字符串，用逗号分隔
+        String newUserListStr = StringUtils.join(newUserList, ",");
+        String totalUserListStr = StringUtils.join(totalUserList, ",");
+
+        return UserReportVO.builder()
+                .dateList(dateListStr)
+                .newUserList(newUserListStr)
+                .totalUserList(totalUserListStr)
                 .build();
     }
 }
