@@ -5,15 +5,20 @@ import com.sky.entity.Orders;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
-import com.sky.vo.OrderReportVO;
-import com.sky.vo.SalesTop10ReportVO;
-import com.sky.vo.TurnoverReportVO;
-import com.sky.vo.UserReportVO;
+import com.sky.service.WorkspaceService;
+import com.sky.vo.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,6 +39,9 @@ public class ReportServiceImpl implements ReportService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    WorkspaceService workspaceService;
 
     /**
      * 统计指定时间区间内营业额数据
@@ -230,5 +238,74 @@ public class ReportServiceImpl implements ReportService {
                 .nameList(namesStr)
                 .numberList(numbersStr)
                 .build();
+    }
+
+    /**
+     * 导出运营数据报表
+     * @param response
+     */
+    public void exportBusinessData(HttpServletResponse response) {
+        //1 查询数据库，获取营业数据(最近30天)
+        LocalDate dateBegin = LocalDate.now().minusDays(30);
+        LocalDate dateEnd = LocalDate.now().minusDays(1);
+        //查询概览数据
+        BusinessDataVO businessDataVO = workspaceService.getBusinessData(
+                LocalDateTime.of(dateBegin, LocalTime.MIN),
+                LocalDateTime.of(dateEnd, LocalTime.MAX)
+        );
+
+
+        //2 通过POI将数据写入到Excel文件中
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("template/运营数据报表模板.xlsx");
+
+        try {
+            //基于模板文件创建一个新的Excel文件
+            XSSFWorkbook excel = new XSSFWorkbook(inputStream);
+            //获取Sheet页
+            XSSFSheet sheet = excel.getSheetAt(0);
+            //填充概览数据
+            sheet.getRow(1).getCell(1).setCellValue("时间：" + dateBegin + "至" + dateEnd);//填充数据(时间）
+
+            //获取第4行
+            XSSFRow row4 = sheet.getRow(3);
+            row4.getCell(2).setCellValue(businessDataVO.getTurnover());//填充营业额
+            row4.getCell(4).setCellValue(businessDataVO.getOrderCompletionRate());//填充订单完成率
+            row4.getCell(6).setCellValue(businessDataVO.getNewUsers());//填充新增用户数
+
+            //获取第5行
+            XSSFRow row5 = sheet.getRow(4);
+            row5.getCell(2).setCellValue(businessDataVO.getValidOrderCount());//填充有效订单数
+            row5.getCell(4).setCellValue(businessDataVO.getUnitPrice());//填充平均客单价
+
+            //填充明细数据
+            for (int i = 0; i < 30; i++) {
+                LocalDate date = dateBegin.plusDays(i);
+                businessDataVO = workspaceService.getBusinessData(LocalDateTime.of(
+                                date, LocalTime.MIN),
+                        LocalDateTime.of(date, LocalTime.MAX)
+                );
+
+                XSSFRow row = sheet.getRow(i + 7);
+                row.getCell(1).setCellValue(date.toString());//填充日期
+                row.getCell(2).setCellValue(businessDataVO.getTurnover());//填充营业额
+                row.getCell(3).setCellValue(businessDataVO.getValidOrderCount());//填充有效订单数
+                row.getCell(4).setCellValue(businessDataVO.getOrderCompletionRate());//填充订单完成率
+                row.getCell(5).setCellValue(businessDataVO.getUnitPrice());//填充平均客单价
+                row.getCell(6).setCellValue(businessDataVO.getNewUsers());//填充新增用户数
+            }
+
+
+            //3 通过输出流将Excel文件下载到客户端浏览器
+            ServletOutputStream outputStream = response.getOutputStream();
+            excel.write(outputStream);
+
+            //关闭资源
+            outputStream.close();
+            excel.close();
+            inputStream.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
